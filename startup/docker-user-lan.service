@@ -1,0 +1,13 @@
+[Unit]
+Description=Restrict Docker published ports to the LAN (DOCKER-USER)
+After=docker.service
+Requires=docker.service
+PartOf=docker.service
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/local/sbin/docker-user-lan.sh
+
+[Install]
+WantedBy=docker.service
