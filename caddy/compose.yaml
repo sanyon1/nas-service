@@ -1,0 +1,29 @@
+name: caddy
+
+services:
+  caddy:
+    extends:
+      file: ../compose-common/hardening.yaml
+      service: hardened
+    image: caddy:2.11.7
+    # Only port open to the internet. Caddy listens on 8443 inside (https_port 8443) so it needs no capability.
+    ports:
+      - "443:8443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - /srv/appdata/caddy/data:/data
+      - /srv/appdata/caddy/config:/config
+    networks:
+      - default
+      - sftpgo_proxy
+      - jellyfin_proxy
+
+# Caddy owns the per-backend internal networks; each backend joins only its own one as external,
+# so SFTPGo and Jellyfin cannot reach each other. Start this project first on a fresh host.
+networks:
+  sftpgo_proxy:
+    name: sftpgo_proxy
+    internal: true
+  jellyfin_proxy:
+    name: jellyfin_proxy
+    internal: true

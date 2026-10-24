@@ -1,0 +1,6 @@
+# Services managed by ./stack, one compose project directory per line.
+# `./stack up` starts them top to bottom, `./stack down` stops them bottom to top.
+# Comment out a line to leave that service out.
+caddy
+sftpgo
+jellyfin

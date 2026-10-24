@@ -1,0 +1,24 @@
+name: sftpgo
+
+services:
+  sftpgo:
+    extends:
+      file: ../compose-common/hardening.yaml
+      service: hardened
+    image: drakkan/sftpgo:v2.7.6
+    # Published ports are LAN-only via DOCKER-USER (startup/docker-user-lan.sh).
+    # The web client (8080) is reached only through Caddy. Container paths and ports are finalized in nas-zdx.14.
+    ports:
+      - "2022:2022"   # SFTP
+      - "8081:8081"   # admin UI
+    volumes:
+      - /srv/appdata/sftpgo/state:/var/lib/sftpgo
+      - /mnt/hdd0/share:/srv/sftpgo/share
+    networks:
+      - default
+      - sftpgo_proxy
+
+networks:
+  sftpgo_proxy:
+    name: sftpgo_proxy
+    external: true

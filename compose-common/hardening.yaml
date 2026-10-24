@@ -1,0 +1,21 @@
+# Hardening baseline shared by every service (nas-zdx.36). Use from a service with:
+#   extends:
+#     file: ../compose-common/hardening.yaml
+#     service: hardened
+# Override a single key in the service file when a service needs an exception.
+services:
+  hardened:
+    user: "1000:1001"
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    read_only: true
+    tmpfs:
+      - /tmp
+    restart: unless-stopped
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"

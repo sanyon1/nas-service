@@ -1,0 +1,27 @@
+name: jellyfin
+
+services:
+  jellyfin:
+    extends:
+      file: ../compose-common/hardening.yaml
+      service: hardened
+    image: jellyfin/jellyfin:12.2
+    group_add:
+      - "993"   # host render group, for /dev/dri/renderD128
+    devices:
+      - /dev/dri/renderD128:/dev/dri/renderD128
+    # LAN clients (TV/mobile apps) until a trusted certificate is in place; revisit in nas-zdx.41.
+    ports:
+      - "8096:8096"
+    volumes:
+      - /srv/appdata/jellyfin/config:/config
+      - /srv/appdata/jellyfin/cache:/cache
+      - /mnt/hdd0/share/media:/media:ro
+    networks:
+      - default
+      - jellyfin_proxy
+
+networks:
+  jellyfin_proxy:
+    name: jellyfin_proxy
+    external: true

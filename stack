@@ -1,0 +1,37 @@
+#!/bin/bash
+# Run docker compose across the services in services.list, in order.
+#   ./stack up|pull|ps|config [service...]   top to bottom
+#   ./stack down [service...]                bottom to top
+# With service names, only those (still in list order) are affected.
+# Each service stays an independent compose project; `cd <service> && docker compose ...` works too.
+set -euo pipefail
+
+root=$(cd "$(dirname "$0")" && pwd)
+cmd=${1:-}
+shift || true
+
+mapfile -t listed < <(sed -e 's/#.*//' -e 's/[[:space:]]//g' -e '/^$/d' "$root/services.list")
+
+selected=()
+for svc in "${listed[@]}"; do
+    if [ $# -eq 0 ] || printf '%s\n' "$@" | grep -qx "$svc"; then
+        selected+=("$svc")
+    fi
+done
+for arg in "$@"; do
+    printf '%s\n' "${listed[@]}" | grep -qx "$arg" || { echo "not in services.list: $arg" >&2; exit 1; }
+done
+
+run() {
+    echo "== $1: docker compose ${*:2}"
+    docker compose --project-directory "$root/$1" -f "$root/$1/compose.yaml" "${@:2}"
+}
+
+case "$cmd" in
+    up)     for s in "${selected[@]}"; do run "$s" up -d; done ;;
+    down)   for ((i=${#selected[@]}-1; i>=0; i--)); do run "${selected[i]}" down; done ;;
+    pull)   for s in "${selected[@]}"; do run "$s" pull; done ;;
+    ps)     for s in "${selected[@]}"; do run "$s" ps; done ;;
+    config) for s in "${selected[@]}"; do run "$s" config -q && echo "ok"; done ;;
+    *)      sed -n '2,6p' "$0" >&2; exit 2 ;;
+esac
