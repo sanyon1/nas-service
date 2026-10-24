@@ -9,8 +9,8 @@ services:
     ports:
       - "3306:3306"
     volumes:
-      - type: bind
-        source: ./db_data
+      - type: volume
+        source: db_data
         target: /var/lib/mysql
     networks:
       - global_net
@@ -29,3 +29,7 @@ networks:
   global_net:
     name: global_net
     driver: bridge
+
+volumes:
+  db_data:
+    external: true

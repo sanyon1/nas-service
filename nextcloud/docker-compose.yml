@@ -5,7 +5,7 @@ services:
     volumes:
       - type: volume
         source: nextcloud
-        target: /var/www/html
+        target: /var/www/html/nextcloud
     networks:
       - global_net
     environment:
@@ -21,17 +21,30 @@ services:
     image: nginx:alpine-slim
     restart: always
     ports:
-      - "8080:80"
+      - "${NGINX_PORT}:80"
     depends_on:
       - app
     volumes:
-      # https://docs.nextcloud.com/server/latest/admin_manual/installation/nginx.html
+      # https://nginx.org/en/docs/example.html
       - type: bind
         source: ./nginx.conf
         target: /etc/nginx/nginx.conf
+      # https://docs.nextcloud.com/server/latest/admin_manual/installation/nginx.html
+      # https://github.com/docker-library/docs/tree/master/nginx#using-environment-variables-in-nginx-configuration-new-in-119
+      - type: bind
+        source: ./nginx-templates
+        target: /etc/nginx/templates
+        read_only: true
+      - type: bind
+        source: ./nginx-ssl-cert
+        target: /etc/ssl/nginx
         read_only: true
     volumes_from:
       - app
+    environment:
+      - NGINX_SERVER_NAME=${NGINX_SERVER_NAME}
+      - NGINX_SSL_CERTIFICATE_FILENAME=${NGINX_SSL_CERTIFICATE_FILENAME}
+      - NGINX_SSL_CERTIFICATE_KEY_FILENAME=${NGINX_SSL_CERTIFICATE_KEY_FILENAME}
 
 networks:
   global_net:

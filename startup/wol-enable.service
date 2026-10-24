@@ -1,0 +1,10 @@
+[Unit]
+Description=Enable Wake-on-LAN
+After=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/srv/nas-service/startup/wol-enable.sh
+
+[Install]
+WantedBy=multi-user.target
