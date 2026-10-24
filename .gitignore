@@ -20,8 +20,6 @@
 
 .env
 global_net/db_data
-# nested clone with secrets; not part of this repo
-huly-selfhost/
 
 # stray log
 latest.log
