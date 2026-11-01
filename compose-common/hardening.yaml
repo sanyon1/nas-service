@@ -1,4 +1,4 @@
-# Hardening baseline shared by every service (nas-zdx.36). Use from a service with:
+# Hardening baseline shared by every service. Use from a service with:
 #   extends:
 #     file: ../compose-common/hardening.yaml
 #     service: hardened

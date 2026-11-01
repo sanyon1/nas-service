@@ -1,0 +1,5 @@
+# Placeholder; the real config is written when Caddy is set up.
+{
+	https_port 8443
+	auto_https disable_redirects
+}

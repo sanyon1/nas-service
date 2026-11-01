@@ -1,0 +1,104 @@
+# Nextcloud keeps its own MariaDB and Redis: each app runs its own backend instances.
+services:
+  nextcloud-db:
+    image: mariadb:11.4.5
+    profiles: [nextcloud]
+    restart: unless-stopped
+    command: --transaction-isolation=READ-COMMITTED
+    volumes:
+      - db_data:/var/lib/mysql
+    environment:
+      - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD}
+      - MYSQL_DATABASE=${MYSQL_DATABASE}
+      - MYSQL_USER=${MYSQL_USER}
+      - MYSQL_PASSWORD=${MYSQL_PASSWORD}
+    # mariadb-admin ping succeeds once the server accepts connections, without needing credentials.
+    healthcheck:
+      test: ["CMD", "mariadb-admin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    networks:
+      nextcloud:
+        aliases:
+          - db
+
+  nextcloud-redis:
+    image: redis:8.0.1-alpine
+    profiles: [nextcloud]
+    restart: unless-stopped
+    volumes:
+      - redis_data:/data
+    networks:
+      nextcloud:
+        aliases:
+          - redis
+
+  nextcloud-app:
+    image: nextcloud:fpm
+    profiles: [nextcloud]
+    restart: unless-stopped
+    volumes:
+      - type: volume
+        source: nextcloud
+        target: /var/www/html/nextcloud
+    depends_on:
+      nextcloud-db:
+        condition: service_healthy
+      nextcloud-redis:
+        condition: service_started
+    networks:
+      - nextcloud
+    environment:
+      - MYSQL_DATABASE=${MYSQL_DATABASE}
+      - MYSQL_USER=${MYSQL_USER}
+      - MYSQL_PASSWORD=${MYSQL_PASSWORD}
+      - MYSQL_HOST=db
+      - REDIS_HOST=redis
+
+  # Note: Nginx is an external service. You can find more information about the configuration here:
+  # https://hub.docker.com/_/nginx/
+  nextcloud-web:
+    image: nginx:alpine-slim
+    profiles: [nextcloud]
+    restart: unless-stopped
+    ports:
+      - "${NGINX_PORT}:80"
+    depends_on:
+      - nextcloud-app
+    volumes:
+      # https://nginx.org/en/docs/example.html
+      - type: bind
+        source: ./nginx.conf
+        target: /etc/nginx/nginx.conf
+      # https://docs.nextcloud.com/server/latest/admin_manual/installation/nginx.html
+      # https://github.com/docker-library/docs/tree/master/nginx#using-environment-variables-in-nginx-configuration-new-in-119
+      - type: bind
+        source: ./nginx-templates
+        target: /etc/nginx/templates
+        read_only: true
+      - type: bind
+        source: ./nginx-ssl-cert
+        target: /etc/ssl/nginx
+        read_only: true
+    volumes_from:
+      - nextcloud-app
+    environment:
+      - NGINX_SERVER_NAME=${NGINX_SERVER_NAME}
+      - NGINX_SSL_CERTIFICATE_FILENAME=${NGINX_SSL_CERTIFICATE_FILENAME}
+      - NGINX_SSL_CERTIFICATE_KEY_FILENAME=${NGINX_SSL_CERTIFICATE_KEY_FILENAME}
+    networks:
+      - nextcloud
+
+networks:
+  nextcloud:
+
+volumes:
+  # Keep the volumes created by the earlier standalone projects.
+  nextcloud:
+    name: nextcloud_nextcloud
+  db_data:
+    name: db_data
+    external: true
+  redis_data:

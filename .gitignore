@@ -19,6 +19,8 @@
 # End of https://www.toptal.com/developers/gitignore/api/linux
 
 .env
+# Root .env holds only non-secret settings (COMPOSE_PROFILES) and is committed.
+!/.env
 global_net/db_data
 
 # stray log

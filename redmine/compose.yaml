@@ -2,8 +2,10 @@
 # SPDX-License-Identifier: APACHE-2.0
 
 services:
-  mariadb:
+  redmine-db:
     image: docker.io/bitnami/mariadb:11.4
+    profiles: [redmine]
+    restart: unless-stopped
     ports:
       - '3306:3306'
     volumes:
@@ -17,6 +19,8 @@ services:
       - MARIADB_DATABASE=bitnami_redmine
   redmine:
     image: docker.io/bitnami/redmine:5
+    profiles: [redmine]
+    restart: unless-stopped
     ports:
       - '80:3000'
     volumes:
@@ -27,11 +31,11 @@ services:
         source: './themes/PurpleMine2'
         target: '/opt/bitnami/redmine/public/themes/PurpleMine2'
     depends_on:
-      - mariadb
+      - redmine-db
     environment:
       # ALLOW_EMPTY_PASSWORD is recommended only for development.
       - ALLOW_EMPTY_PASSWORD=yes
-      - REDMINE_DATABASE_HOST=mariadb
+      - REDMINE_DATABASE_HOST=redmine-db
       - REDMINE_DATABASE_PORT_NUMBER=3306
       - REDMINE_DATABASE_USER=bn_redmine
       - REDMINE_DATABASE_NAME=bitnami_redmine

@@ -1,0 +1,13 @@
+# Single compose project for every service in this repository.
+# Each service lives in its own folder; COMPOSE_PROFILES in .env selects which ones run.
+#   docker compose up -d --wait              start the selected profiles
+#   docker compose --profile "*" down        stop and remove every service
+name: nas-service
+
+include:
+  - compose-common/networks.yaml
+  - caddy/compose.yaml
+  - sftpgo/compose.yaml
+  - jellyfin/compose.yaml
+  - nextcloud/compose.yaml
+  - redmine/compose.yaml
