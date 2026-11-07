@@ -11,3 +11,4 @@ include:
   - jellyfin/compose.yaml
   - nextcloud/compose.yaml
   - redmine/compose.yaml
+  - opencloud/compose.yaml

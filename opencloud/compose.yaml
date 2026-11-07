@@ -1,0 +1,51 @@
+services:
+  # TEST deployment to evaluate OpenCloud as an SFTPGo replacement. LAN only, not behind Caddy yet.
+  opencloud:
+    extends:
+      file: ../compose-common/hardening.yaml
+      service: hardened
+    # Rolling line, same tag the official opencloud-compose uses (github.com/opencloud-eu/opencloud-compose).
+    image: opencloudeu/opencloud-rolling:9.0.0
+    profiles: [opencloud]
+    # `opencloud init` writes /etc/opencloud/opencloud.yaml with random secrets on first start
+    # and fails once it exists, so the error is ignored (same as the official compose).
+    entrypoint: ["/bin/sh"]
+    command: ["-c", "opencloud init || true; opencloud server"]
+    env_file:
+      - path: ./.env   # IDM_ADMIN_PASSWORD (git-ignored)
+        required: true
+    environment:
+      # Must match the URL the browser uses; the built-in IdP issues tokens for it.
+      OC_URL: "https://192.168.50.117:9200"
+      PROXY_HTTP_ADDR: "0.0.0.0:9200"
+      # Proxy serves a self-generated certificate; services trust each other without verification.
+      PROXY_TLS: "true"
+      OC_INSECURE: "true"
+      OC_LOG_LEVEL: info
+      OC_DEFAULT_LANGUAGE: ko
+      IDM_CREATE_DEMO_USERS: "false"
+      # PosixFS (default driver since 2.0) in collaborative mode: changes made outside OpenCloud
+      # (Samba, host) are picked up live. docs.opencloud.eu > Storage > PosixFS.
+      STORAGE_USERS_DRIVER: posix
+      STORAGE_USERS_ID_CACHE_STORE: nats-js-kv
+      STORAGE_USERS_POSIX_WATCH_FS: "true"
+      # Readable project space folders (default projects/{{.SpaceId}}). Applies to spaces created afterwards.
+      STORAGE_USERS_POSIX_GENERAL_SPACE_PATH_TEMPLATE: "projects/{{.SpaceName}}"
+      OC_SHARING_PUBLIC_SHARE_MUST_HAVE_PASSWORD: "true"
+      # TEST ONLY: lets scripts call the Graph/WebDAV API with a password. Turn off before any real use.
+      PROXY_ENABLE_BASIC_AUTH: "true"
+    # Published to the LAN only via DOCKER-USER (startup/docker-user-lan.sh).
+    ports:
+      - "9200:9200"
+    # Create /srv/appdata/opencloud/data/storage/users beforehand (owned 1000:1001): otherwise Docker creates
+    # data/storage as root for the nested mount below and OpenCloud cannot write storage/metadata.
+    volumes:
+      - /srv/appdata/opencloud/config:/etc/opencloud
+      - /srv/appdata/opencloud/data:/var/lib/opencloud
+      # User and project space content. Test folder inside the Samba share so external writes can be tried.
+      - /mnt/hdd0/share/_opencloud-test:/var/lib/opencloud/storage/users
+    networks:
+      - opencloud_edge
+
+networks:
+  opencloud_edge:
