@@ -1,5 +1,41 @@
-# Placeholder; the real config is written when Caddy is set up.
 {
+	# Non-root: listen on high ports inside the container. The host publishes 443 -> 8443 only.
 	https_port 8443
+	# Never published; set only so Caddy does not try to bind 80 as non-root.
+	http_port 8080
+	# No http -> https redirect listener (80 is not open).
 	auto_https disable_redirects
+}
+
+(security_headers) {
+	header {
+		Strict-Transport-Security "max-age=31536000"
+		X-Content-Type-Options "nosniff"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		-Server
+	}
+}
+
+(access_log) {
+	log {
+		output file /data/logs/access.log {
+			roll_size 50MiB
+			roll_keep 10
+		}
+		format json
+	}
+}
+
+# OpenCloud. OC_URL in opencloud/compose.yaml must stay equal to this address.
+sanyoni.asuscomm.com {
+	tls {
+		# Only 443 reaches us from the internet, so use TLS-ALPN-01, never HTTP-01 (port 80).
+		issuer acme {
+			disable_http_challenge
+		}
+	}
+	import security_headers
+	import access_log
+	# No request body limit: large uploads are expected.
+	reverse_proxy opencloud:9200
 }

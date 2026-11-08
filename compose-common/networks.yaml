@@ -1,6 +1,6 @@
 # Networks shared across service folders. Per-service edge networks are defined in each service's own file.
 networks:
-  # Each backend shares an internal network with Caddy only, so SFTPGo and Jellyfin cannot reach each other.
+  # Each backend shares an internal network with Caddy only, so backends cannot reach each other.
   # Fixed subnets so a backend can trust exactly this range for X-Forwarded-For.
   sftpgo_proxy:
     name: sftpgo_proxy
@@ -14,3 +14,9 @@ networks:
     ipam:
       config:
         - subnet: 10.20.2.0/24
+  opencloud_proxy:
+    name: opencloud_proxy
+    internal: true
+    ipam:
+      config:
+        - subnet: 10.20.3.0/24

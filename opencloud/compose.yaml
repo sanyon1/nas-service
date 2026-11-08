@@ -1,5 +1,5 @@
 services:
-  # TEST deployment to evaluate OpenCloud as an SFTPGo replacement. LAN only, not behind Caddy yet.
+  # File server. Reached only through Caddy (https://sanyoni.asuscomm.com); no host port is published.
   opencloud:
     extends:
       file: ../compose-common/hardening.yaml
@@ -15,14 +15,13 @@ services:
       - path: ./.env   # IDM_ADMIN_PASSWORD (git-ignored)
         required: true
     environment:
-      # Must match the URL the browser uses; the built-in IdP issues tokens for it.
-      # A hostname, not the LAN IP: the proxy fetches OC_URL from inside the container to verify tokens,
-      # and container -> host LAN IP is dropped by ufw (INPUT policy DROP). extra_hosts points it back
-      # at the container itself. Browsers resolve sanyoni-server through the router DNS.
-      OC_URL: "https://sanyoni-server:9200"
+      # Must match the URL the browser uses (the site address in caddy/Caddyfile); the built-in IdP
+      # issues tokens for it. The proxy also fetches OC_URL from inside the container to verify tokens:
+      # extra_hosts below sends that request to the host's published 443, i.e. back through Caddy.
+      OC_URL: "https://sanyoni.asuscomm.com"
       PROXY_HTTP_ADDR: "0.0.0.0:9200"
-      # Proxy serves a self-generated certificate; services trust each other without verification.
-      PROXY_TLS: "true"
+      # Caddy terminates TLS; plain HTTP on the internal opencloud_proxy network.
+      PROXY_TLS: "false"
       OC_INSECURE: "true"
       OC_LOG_LEVEL: info
       OC_DEFAULT_LANGUAGE: ko
@@ -35,13 +34,11 @@ services:
       # Readable project space folders (default projects/{{.SpaceId}}). Applies to spaces created afterwards.
       STORAGE_USERS_POSIX_GENERAL_SPACE_PATH_TEMPLATE: "projects/{{.SpaceName}}"
       OC_SHARING_PUBLIC_SHARE_MUST_HAVE_PASSWORD: "true"
-      # TEST ONLY: lets scripts call the Graph/WebDAV API with a password. Turn off before any real use.
-      PROXY_ENABLE_BASIC_AUTH: "true"
+      # Password-only Basic auth on the API stays off: it would bypass the IdP login.
+      PROXY_ENABLE_BASIC_AUTH: "false"
     extra_hosts:
-      - "sanyoni-server:127.0.0.1"
-    # Published to the LAN only via DOCKER-USER (startup/docker-user-lan.sh).
-    ports:
-      - "9200:9200"
+      # host-gateway = the host as seen from containers; its published 443 is Caddy.
+      - "sanyoni.asuscomm.com:host-gateway"
     # Create /srv/appdata/opencloud/data/storage/users beforehand (owned 1000:1001): otherwise Docker creates
     # data/storage as root for the nested mount below and OpenCloud cannot write storage/metadata.
     volumes:
@@ -50,7 +47,9 @@ services:
       # User and project space content. Test folder inside the Samba share so external writes can be tried.
       - /mnt/hdd0/share/_opencloud-test:/var/lib/opencloud/storage/users
     networks:
+      # Edge: outbound and the host-gateway path above. Proxy: Caddy -> opencloud:9200.
       - opencloud_edge
+      - opencloud_proxy
 
 networks:
   opencloud_edge:

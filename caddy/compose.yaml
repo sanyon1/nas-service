@@ -3,7 +3,14 @@ services:
     extends:
       file: ../compose-common/hardening.yaml
       service: hardened
-    image: caddy:2.11.7
+    # The official binary carries file capability cap_net_bind_service. Under no-new-privileges with
+    # cap_drop ALL the kernel refuses to exec such a file ("operation not permitted"). Caddy listens on
+    # 8443 and needs no capability, so strip it in a local build of the same version.
+    build:
+      dockerfile_inline: |
+        FROM caddy:2.11.7
+        RUN setcap -r /usr/bin/caddy
+    image: nas-caddy:2.11.7
     profiles: [caddy]
     # Only port open to the internet. Caddy listens on 8443 inside (https_port 8443) so it needs no capability.
     ports:
@@ -16,6 +23,7 @@ services:
       - caddy_edge
       - sftpgo_proxy
       - jellyfin_proxy
+      - opencloud_proxy
 
 networks:
   caddy_edge:
