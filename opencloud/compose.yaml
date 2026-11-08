@@ -16,7 +16,10 @@ services:
         required: true
     environment:
       # Must match the URL the browser uses; the built-in IdP issues tokens for it.
-      OC_URL: "https://192.168.50.117:9200"
+      # A hostname, not the LAN IP: the proxy fetches OC_URL from inside the container to verify tokens,
+      # and container -> host LAN IP is dropped by ufw (INPUT policy DROP). extra_hosts points it back
+      # at the container itself. Browsers resolve sanyoni-server through the router DNS.
+      OC_URL: "https://sanyoni-server:9200"
       PROXY_HTTP_ADDR: "0.0.0.0:9200"
       # Proxy serves a self-generated certificate; services trust each other without verification.
       PROXY_TLS: "true"
@@ -34,6 +37,8 @@ services:
       OC_SHARING_PUBLIC_SHARE_MUST_HAVE_PASSWORD: "true"
       # TEST ONLY: lets scripts call the Graph/WebDAV API with a password. Turn off before any real use.
       PROXY_ENABLE_BASIC_AUTH: "true"
+    extra_hosts:
+      - "sanyoni-server:127.0.0.1"
     # Published to the LAN only via DOCKER-USER (startup/docker-user-lan.sh).
     ports:
       - "9200:9200"
